@@ -1,7 +1,12 @@
 <template>
-  <el-button plain @click="open">
-    可自动关闭
-  </el-button>
+  <div>
+    <el-button plain @click="open">
+      可自动关闭
+    </el-button>
+    <el-button plain @click="open2">
+      不会自动关闭
+    </el-button>
+  </div>
 </template>
 
 <script>
@@ -24,7 +29,8 @@ export default {
       this.$notify({
         title: "提示",
         message: "这是一条不会自动关闭的消息",
-        duration: 0
+        duration: 0,
+        position: 'bottom-left'
       });
     }
   }

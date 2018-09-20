@@ -1,9 +1,10 @@
 <template>
-  <div>
-    <el-button plain @click="open12">
-      使用 HTML 片段
-    </el-button>
-  </div>
+  <transition name="slide">
+    <div class="slideBorad" id="slideBorad" v-if="show">
+      asdsafdsfdsafsdfsdasdsafdsfdsafsdfsdasdsafdsfdsafsdfsdasdsafdsfdsafsdfsdasdsafdsfdsafsdfsdasdsafdsfdsafsdfsdasdsafdsfdsafsdfsdasdsafdsfdsafsdfsdasdsafdsfdsafsdfsd
+      <div class="el-notification__closeBtn el-icon-arrow-left" @click="show = !show"></div>
+    </div>
+  </transition>
 </template>
 <script>
 export default {
@@ -11,6 +12,7 @@ export default {
   data() {
     return {
       value3: false,
+      show: false,
       styles: {
         height: "calc(100% - 55px)",
         overflow: "auto",
@@ -29,10 +31,19 @@ export default {
         duration: 0
       });
     }
+  },
+  mounted() {},
+  computed: {},
+  created() {
+    document.onkeydown = e => {
+      if (e.key === "s") {
+        this.show = !this.show;
+      }
+    };
   }
 };
 </script>
-<style>
+<style scoped>
 .demo-drawer-footer {
   width: 100%;
   position: absolute;
@@ -43,10 +54,25 @@ export default {
   text-align: right;
   background: #fff;
 }
-.IM {
-  background-color: black;
-  border: 2px solid;
-  border-radius: 25px;
-  -moz-border-radius: 25px; /* Old Firefox */
+.slideBorad {
+  position: fixed;
+  background-color: blue;
+  height: 100%;
+  top: 0;
+  bottom: 0;
+  border: 1px solid #ebeef5;
+  border-radius: 8px;
+  padding: 14px 26px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  background-color: #fff;
+  box-sizing: border-box;
+  left: 0;
+}
+.slide-enter-active,
+.slide-leave-active {
+  transition: left 0.4s;
+}
+.slide-enter, .slide-leave-to /* .fade-leave-active below version 2.1.8 */ {
+  left: -100%;
 }
 </style>

@@ -2,15 +2,15 @@
   <div class="windows">
     <div class="launchPad">
       <el-button-group class="launchItem">
-        <el-button type="primary" icon="el-icon-arrow-left">上一页</el-button>
-        <el-button type="primary">下一页
+        <el-button size="small" type="primary" icon="el-icon-arrow-left">上一页</el-button>
+        <el-button size="small" type="primary">下一页
           <i class="el-icon-arrow-right el-icon--right"></i>
         </el-button>
       </el-button-group>
       <el-button-group class="launchItem">
-        <el-button type="primary" icon="el-icon-edit"></el-button>
-        <el-button type="primary" icon="el-icon-share"></el-button>
-        <el-button type="primary" icon="el-icon-delete"></el-button>
+        <el-button size="small" type="primary" icon="el-icon-edit"></el-button>
+        <el-button size="small" type="primary" icon="el-icon-share"></el-button>
+        <el-button size="small" type="primary" icon="el-icon-delete"></el-button>
       </el-button-group>
     </div>
     <IM/>
@@ -62,7 +62,7 @@ export default {
         odiv.style.left = left + "px";
         odiv.style.top = top + "px";
       };
-      document.onmouseup = e => {
+      document.onmouseup = () => {
         document.onmousemove = null;
         document.onmouseup = null;
       };
@@ -79,9 +79,6 @@ export default {
             let left = e.clientX - disX;
             let top = e.clientY - disY;
 
-            console.log(left, top);
-            console.log(target.offsetWidth, target.offsetHeight);
-
             left + target.offsetWidth < 15
               ? (left = 15 - target.offsetWidth)
               : undefined;
@@ -95,7 +92,7 @@ export default {
             target.style.left = left + "px";
             target.style.top = top + "px";
           };
-          document.onmouseup = e => {
+          document.onmouseup = () => {
             document.onmousemove = null;
             document.onmouseup = null;
           };
