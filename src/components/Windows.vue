@@ -72,12 +72,12 @@ export default {
     drag: {
       bind: function(el) {
         let target = el;
-        target.onmousedown = e => {
-          let disX = e.clientX - target.offsetLeft;
-          let disY = e.clientY - target.offsetTop;
-          document.onmousemove = e => {
-            let left = e.clientX - disX;
-            let top = e.clientY - disY;
+        target.ontouchstart = target.onmousedown = e => {
+          let disX = (e.clientX || e.touches[0].clientX) - target.offsetLeft;
+          let disY = (e.clientY || e.touches[0].clientY) - target.offsetTop;
+          document.ontouchmove = document.onmousemove = e => {
+            let left = (e.clientX || e.touches[0].clientX) - disX;
+            let top = (e.clientY || e.touches[0].clientY) - disY;
 
             left + target.offsetWidth < 15
               ? (left = 15 - target.offsetWidth)
@@ -88,11 +88,10 @@ export default {
 
             // target.positionX = top;
             // target.positionY = left;
-
             target.style.left = left + "px";
             target.style.top = top + "px";
           };
-          document.onmouseup = () => {
+          document.ontouchend = document.onmouseup = () => {
             document.onmousemove = null;
             document.onmouseup = null;
           };
@@ -172,9 +171,9 @@ export default {
   padding-top: 2em;
   height: 90%;
   width: 90%;
-  resize:none;
+  resize: none;
   border: 0;
-  background-color: rgb(255, 255, 255, 0)
+  background-color: rgb(255, 255, 255, 0);
 }
 .stickText:focus {
   outline: none;
