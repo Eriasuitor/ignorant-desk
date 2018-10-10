@@ -9,10 +9,10 @@
 <script>
 export default {
   name: "IM",
+  props: ['show'],
   data() {
     return {
       value3: false,
-      show: false,
       styles: {
         height: "calc(100% - 55px)",
         overflow: "auto",
@@ -32,14 +32,12 @@ export default {
       });
     }
   },
-  mounted() {},
+  mounted() {
+ 
+  },
   computed: {},
   created() {
-    document.onkeydown = e => {
-      if (e.key === "s") {
-        this.show = !this.show;
-      }
-    };
+   
   }
 };
 </script>
@@ -55,6 +53,7 @@ export default {
   background: #fff;
 }
 .slideBorad {
+  z-index: 1000;
   position: fixed;
   background-color: blue;
   height: 100%;

@@ -13,7 +13,12 @@
         <el-button size="small" type="primary" icon="el-icon-delete"></el-button>
       </el-button-group>
     </div>
-    <IM/>
+    <IM :show="showIm"/>
+    <transition name="editor">
+      <window v-show="show">
+        <Editor/>
+      </window>
+    </transition>
     <div class="window" v-drag>
       <div class="curved_box">
         <textarea class="stickText" />
@@ -27,17 +32,25 @@
 
 <script>
 import IM from "./IM";
+import Window from "./Window";
+import HelloWorld from "./HelloWorld";
+import Editor from "./Editor";
 export default {
   name: "Windows",
   props: {
     msg: String
   },
   components: {
-    IM
+    IM,
+    Window,
+    HelloWorld,
+    Editor
   },
   data() {
     return {
-      value1: "1"
+      value1: "1",
+      show: true,
+      showIm: false
     };
   },
   mounted() {},
@@ -94,10 +107,51 @@ export default {
           document.ontouchend = document.onmouseup = () => {
             document.onmousemove = null;
             document.onmouseup = null;
+            document.ontouchmove = null;
+            document.ontouchend = null;
+          };
+        };
+      }
+    },
+    resize: {
+      bind: function(el) {
+        let target = el;
+        target.ontouchstart = target.onmousedown = e => {
+          let disX = (e.clientX || e.touches[0].clientX) - target.offsetLeft;
+          let disY = (e.clientY || e.touches[0].clientY) - target.offsetTop;
+          document.ontouchmove = document.onmousemove = e => {
+            let left = (e.clientX || e.touches[0].clientX) - disX;
+            let top = (e.clientY || e.touches[0].clientY) - disY;
+
+            left + target.offsetWidth < 15
+              ? (left = 15 - target.offsetWidth)
+              : undefined;
+            top + target.offsetHeight < 15
+              ? (top = 15 - target.offsetHeight)
+              : undefined;
+
+            // target.positionX = top;
+            // target.positionY = left;
+            target.style.left = left + "px";
+            target.style.top = top + "px";
+          };
+          document.ontouchend = document.onmouseup = () => {
+            document.onmousemove = null;
+            document.onmouseup = null;
           };
         };
       }
     }
+  },
+  created() {
+    document.onkeypress = e => {
+      if (e.key === "q") {
+        this.show = !this.show;
+      }
+      if (e.key === "s") {
+        this.showIm = !this.showIm;
+      }
+    };
   }
 };
 </script>
@@ -177,5 +231,30 @@ export default {
 }
 .stickText:focus {
   outline: none;
+}
+.editor-enter-active {
+  animation: editor-in 0.3s;
+}
+.editor-leave-active {
+  animation: editor-in 0.3s reverse;
+}
+
+@keyframes editor-in {
+  0% {
+    transform: translateY(-150%);
+  }
+  65% {
+    transform: translateY(15%);
+  }
+  100% {
+    transform: translateY(0%);
+  }
+}
+.im-enter-active,
+.im-leave-active {
+  transition: left 0.4s;
+}
+.im-enter, .im-leave-to /* .fade-leave-active below version 2.1.8 */ {
+  left: -100%;
 }
 </style>
