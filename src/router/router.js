@@ -1,5 +1,6 @@
 import HelloWorld from '../components/HelloWorld.vue'
 import Windows from '../components/Windows.vue'
+import Login from '../components/Login.vue'
 
 export default [{
     path: '/',
@@ -14,4 +15,8 @@ export default [{
             component: HelloWorld
         },
     ]
+}, 
+{
+    path: '/Login',
+    component: Login,
 }]
