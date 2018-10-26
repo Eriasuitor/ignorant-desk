@@ -6,6 +6,7 @@ import 'element-ui/lib/theme-chalk/index.css'
 import App from './App.vue'
 import iView from 'iview';
 import 'iview/dist/styles/iview.css';
+import landingShip from './api'
 
 import VueQuillEditor from 'vue-quill-editor'
 // require styles 引入样式
@@ -17,6 +18,9 @@ const router = new VueRouter({
   routes,
   mode: 'history',
 })
+
+Vue.prototype.landingShip = landingShip
+Vue.prototype.landingMat = 'http://localhost'
 
 Vue.config.productionTip = false
 Vue.use(ElementUI)

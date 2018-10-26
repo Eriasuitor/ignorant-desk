@@ -8,12 +8,19 @@
     "lint": "vue-cli-service lint"
   },
   "dependencies": {
+    "axios": "^0.18.0",
+    "dns": "^0.2.2",
     "element-ui": "^2.4.7",
+    "fetch": "^1.1.0",
     "iview": "^3.1.1",
+    "net": "^1.0.2",
+    "qs": "^6.5.2",
     "vue": "^2.5.17",
     "vue-fullcalendar": "^1.0.9",
     "vue-quill-editor": "^3.0.6",
-    "vue-router": "^3.0.1"
+    "vue-router": "^3.0.1",
+    "vue-websocket": "^0.2.3",
+    "ws": "^6.1.0"
   },
   "devDependencies": {
     "@vue/cli-plugin-babel": "^3.0.3",
