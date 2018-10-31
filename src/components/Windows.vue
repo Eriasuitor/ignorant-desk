@@ -50,7 +50,7 @@
       return {
         value1: "1",
         show: true,
-        showIm: false
+        showIm: true
       };
     },
     mounted() {},
@@ -159,7 +159,7 @@
         if (e.key === "s") {
           this.showIm = !this.showIm;
         }
-      };
+      }
     }
   };
 </script>

@@ -2,36 +2,48 @@
   <transition name="slide">
     <div class="slideBorad" id="slideBorad" v-show="show">
       <div class="loginPad" v-if="showLoginPad">
-        <LP v-on:login="login"/>
+        <LP v-on:login="login" />
       </div>
-      <img src="https://ss2.bdstatic.com/70cFvnSh_Q1YnxGkpoWK1HF6hhy/it/u=699359866,1092793192&fm=26&gp=0.jpg" class="avatar select" />
+      <img :src="user.avatar" class="avatar select" />
       <span class="nickname">{{user.nickName}}<span class="status">{{user.status}}</span></span>
       <span class="signature">{{user.signature}}</span>
-      <div class="el-notification__closeBtn el-icon-arrow-left" @click="show = !show"><span class="el-icon-more" @click="more($event)"></span>
-      </div>
+      <div class="el-notification__closeBtn el-icon-arrow-left"><span class="el-icon-more" @click="more($event)"></span> </div>
       <div class="more" v-if="showMore">
         <div class="logout" @click="logout">登出</div>
       </div>
-      <div class="friend select" v-for="friend in friendList" :key="friend.userId" @click="friendClick(friend)">
-        <img :src="friend.avatar" class="friendAvatar" />
-        <span class="nickname" v-text="friend.nickName"><span class="status">{{friend.status}}</span></span>
-        <div class="msgOverview">{{friend.msgRecord.length != 0? friend.msgRecord[friend.msgRecord.length - 1].content: null}}<span></span></div>
-      </div>
+      <el-row>
+        <el-popover placement="bottom" trigger="click" class="wcLogin">
+          <div class="desc">使用微信扫描二维码以登录您的账户</div>
+          <img src="https://ss0.bdstatic.com/94oJfD_bAAcT8t7mm9GUKT-xh_/timg?image&quality=100&size=b4000_4000&sec=1540983444&di=b7d2f2d1ec628109aab407ad2470f059&src=http://y3.ifengimg.com/news_spider/dci_2013/09/b85234c4801f8b2d7771353867a7a0f8.jpg" class="qr"
+          />
+          <span slot="reference" class="iconfont icon-weixin" title="Offline"></span>
+        </el-popover>
+      </el-row>
+      <el-row>
+        <el-autocomplete class="searchFriend" size="mini" prefix-icon="el-icon-search" :fetch-suggestions="querySearch" placeholder="请输入内容" :trigger-on-focus="false" @select="handleSelect"></el-autocomplete>
+      </el-row>
+      <transition-group name="chat-pad" tag="div">
+        <div class="friend select chat-pad-item" v-for="friend in friendList" :key="friend.userId" @click="friendClick(friend)">
+          <img :src="friend.avatar" class="friendAvatar" />
+          <span class="nickname">{{friend.nickName}}<span class="status">{{friend.status}}</span><span class="status">{{friend.type}}</span></span>
+          <div class="msgOverview">{{friend.msgRecord.length != 0? friend.msgRecord[friend.msgRecord.length - 1].content: null}}<span></span></div>
+        </div>
+      </transition-group>
       <div class="chatPadArea">
-        <div class="chatPad" v-for="chatpad in chatPadList" :key="chatpad.userId">
-          <div class="header"><img :src="chatpad.avatar" class="friendAvatar" /><span class="nickName">{{chatpad.nickName}}<span class="status">{{chatpad.status}}</span></span><span class="el-icon-close close" @click="closeCp(chatpad)"></span></div>
-          <div class="content">
-            <div v-for="msgRecord in chatpad.msgRecord" :key="msgRecord.synId" :class="[msgRecord.to === user.userId? 'msgIn': 'msgOut', 'msgLine']">
-              <span class="msg">{{msgRecord.content}}
-                    <img :src="msgRecord.to === user.userId? chatpad.avatar: user.avatar" class="msgAvatar"/>
-                  </span>
+        <transition-group name="chat-pad" tag="div">
+          <div class="chatPad chat-pad-item" v-for="chatpad in chatPadList" :key="chatpad.userId">
+            <div class="header"><img :src="chatpad.avatar" class="friendAvatar" /><span class="nickName">{{chatpad.nickName}}<span class="status">{{chatpad.status}}</span><span class="status">{{chatpad.type}}</span></span><span class="el-icon-close close" @click="closeCp(chatpad)"></span></div>
+            <transition-group name="chat-pad" tag="div" class="content chat-pad-item" :id="'cpc' + chatpad.userId">
+              <div v-for="msgRecord in chatpad.msgRecord" :key="msgRecord.msgId" :class="[msgRecord.to === user.userId? 'msgIn': 'msgOut', 'msgLine', 'chat-pad-item']">
+                <span class="msg">{{msgRecord.content}}<img :src="msgRecord.to === user.userId? chatpad.avatar: user.avatar" class="msgAvatar"/></span>
+              </div>
+            </transition-group>
+            <div class="inputPad">
+              <textarea value="" rows="2" v-model="chatpad.input"></textarea>
+              <el-button plain size="mini" @click="sendMsg(chatpad)" class="send">发送</el-button>
             </div>
           </div>
-          <div class="inputPad">
-            <textarea value="" rows="2" v-model="chatpad.input"></textarea>
-            <el-button plain size="mini" @click="sendMsg(chatpad)" class="send">发送</el-button>
-          </div>
-        </div>
+        </transition-group>
       </div>
     </div>
   </transition>
@@ -48,9 +60,9 @@
     data() {
       return {
         value3: false,
-        showMore: true,
+        showMore: false,
         token: null,
-        showLoginPad: true,
+        showLoginPad: false,
         friendList: [],
         ws: null,
         user: {},
@@ -64,48 +76,71 @@
       };
     },
     methods: {
-      login(userId, password){
+      querySearch(queryString, cb) {
+        let result
         this.landingShip
-        .post(
-          this.landingMat + ":8090/authentication", {
-            Authorization: "Basic aWduby1jaGF0Onh4eHgteHh4eA==",
-            "Content-Type": "application/x-www-form-urlencoded"
-          },
-          require("qs").stringify({
-            username: userId,
-            password: password
+          .get(this.landingMat + ":8090/user?q=" + queryString, {
+            Authorization: "bearer " + this.token
           })
-        )
-        .then(res => {
-          if (res.status === 200) {
-            this.token = res.data.access_token;
-            this.getMe();
-            this.getFriendList();
-            this.showLoginPad = false
-          }
-          else{
-            this.$emit("new-message", "error", res);
-          }
-        });
+          .then(resp => {
+            if (resp.status === 200) {
+              result = resp.data
+              result.forEach(_ => {
+                _.value = _.userId
+              })
+              result = queryString ? result.filter(this.createFilter(queryString)) : result;
+              // 调用 callback 返回建议列表的数据
+              cb(result);
+            } else
+              this.$emit("new-message", "error", resp);
+          })
       },
-      submitForm(formName) {
-        this.$refs[formName].validate(valid => {
-          if (valid) {
-            alert("submit!");
-          } else {
-            console.log("error submit!!");
-            return false;
-          }
-        });
+      createFilter(queryString) {
+        return (restaurant) => {
+          return (restaurant.value.toLowerCase().indexOf(queryString.toLowerCase()) === 0);
+        };
       },
-      resetForm(formName) {
-        this.$refs[formName].resetFields();
+      loadAll() {
+        return [{
+          "value": "三全鲜食（北新泾店）",
+          "address": "长宁区新渔路144号"
+        }];
+      },
+      handleSelect(item) {
+        item.msgRecord = []
+        this.friendList.push(item)
+        this.chatPadList.push(item)
+      },
+      addFriend() {},
+      login(userId, password) {
+        this.landingShip
+          .post(
+            this.landingMat + ":8090/authentication", {
+              Authorization: "Basic aWduby1jaGF0Onh4eHgteHh4eA==",
+              "Content-Type": "application/x-www-form-urlencoded"
+            },
+            require("qs").stringify({
+              username: userId,
+              password: password
+            })
+          )
+          .then(res => {
+            if (res.status === 200) {
+              this.token = res.data.access_token;
+              this.getMe();
+              this.getFriendList();
+              this.showLoginPad = false;
+            } else {
+              this.$emit("new-message", "error", res);
+            }
+          });
       },
       logout() {
-        this.showLoginPad = true
-        this.user = {}
-        this.friendList = null
-        this.chatPadList = null
+        this.showMore = false;
+        this.showLoginPad = true;
+        this.user = {};
+        this.friendList = null;
+        this.chatPadList = null;
       },
       more(event) {
         event.stopPropagation();
@@ -134,7 +169,6 @@
           })
           .then(resp => {
             this.user = resp.data;
-            console.log(this.user.name);
             this.initSocket();
           });
       },
@@ -148,6 +182,7 @@
           });
       },
       sendMsg(chatPad) {
+        if (!chatPad.input) return
         this.ws.send(
           JSON.stringify({
             type: "msg",
@@ -158,21 +193,39 @@
             })
           })
         );
+        chatPad.input = null;
       },
       friendClick(friend) {
         let index = this.chatPadList.indexOf(friend);
         if (index === -1) this.chatPadList.push(friend);
       },
+      getMsgRecord(friend) {
+        this.landingShip
+          .get(`${this.landingMat}:8090/user/friend/${friend.userId}/message`, {
+            Authorization: "bearer " + this.token
+          })
+          .then(resp => {
+            if (resp.status === 200) {
+              friend.msgRecord = resp.data.concat(friend.msgRecord)
+              this.$forceUpdate()
+              this.$el.querySelectorAll(".chatPad .content").forEach(_ => _.scrollTop = _.scrollHeight)
+            } else {
+              this.$emit("new-message", "error", resp);
+            }
+          });
+      },
       getFriendList() {
-        console.log("bearer " + this.token);
         this.landingShip
           .get(this.landingMat + ":8090/user/friend", {
             Authorization: "bearer " + this.token
           })
           .then(resp => {
             this.friendList = resp.data;
-            this.friendList.forEach(_ => (_.msgRecord = []));
-            console.log(this.friendList[0].userId);
+            this.friendList.forEach(_ => {
+              _.msgRecord = []
+              _.isFriend = true
+            });
+            this.friendList.forEach(_ => this.getMsgRecord(_));
             this.chatPadList = this.friendList.slice(0, 5);
           });
       },
@@ -180,38 +233,34 @@
         let socketContent = JSON.parse(content.data);
         let data = JSON.parse(socketContent.content);
         let friend = null;
-        console.log(data.from);
-        console.log(this.user.userId);
-        console.log(data.from === this.user.userId);
-        console.log(this.friendList.map(_ => _.userId));
         if (data.from === this.user.userId)
           friend = this.friendList.find(_ => _.userId === data.to);
         else friend = this.friendList.find(_ => _.userId === data.from);
-        console.log(1);
-        console.log(friend);
         if (!friend) {
           this.getuserInfo(data.to, resp => {
-            console.log(4);
             friend = resp.data;
-            console.log(resp);
-            console.log(44);
-            friend.msgRecord = [];
-            friend.msgRecord.push(data);
-            console.log(55);
-            this.friendList.push(friend);
+            friend.msgRecord = []
+            friend.msgRecord.push(data)
+            friend.isFriend = false
+            this.friendList.splice(0, 0, friend)
           });
           return;
         }
-        console.log(66);
         friend.msgRecord.push(data);
-        friend.nickName = "12312321";
-        console.log(77);
-        console.log(JSON.stringify(this.friendList));
+        let index = this.friendList.indexOf(friend)
+        this.friendList.splice(index, 1)
+        this.friendList.splice(0, 0, friend)
+        this.$forceUpdate()
+        this.$nextTick(() => {
+          let el = this.$el.querySelector(`#cpc${friend.userId}`)
+          if (el)
+            el.scrollTop = el.scrollHeight
+        })
         // this.$emit("new-message", undefined);
       }
     },
     mounted() {
-      
+      this.login('Lory.Y.Jiang', '123')
     },
     computed: {},
     created() {}
@@ -244,7 +293,7 @@
     box-sizing: border-box;
     left: 0;
     text-align: left;
-    min-width: 25em;
+    width: 30em;
   }
   .slide-enter-active,
   .slide-leave-active {
@@ -255,6 +304,19 @@
   /* .fade-leave-active below version 2.1.8 */
   {
     left: -100%;
+  }
+  .chat-pad-enter,
+  .chat-pad-leave-to
+  /* .chat-pad-leave-active for below version 2.1.8 */
+  {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  .chat-pad-leave-active {
+    position: absolute;
+  }
+  .chat-pad-item {
+    transition: all 0.5s;
   }
   .loginPad {
     position: absolute;
@@ -270,6 +332,19 @@
     cursor: pointer;
     margin-left: 0.3em;
   }
+  .desc {
+    text-align: center
+  }
+  .qr {
+    height: 20em;
+    width: 20em;
+  }
+  .iconfont.icon-weixin {
+    font-size: 2em;
+  }
+  .iconfont.icon-weixin:hover {
+    cursor: pointer;
+  }
   .more {
     position: absolute;
     left: 100%;
@@ -277,15 +352,20 @@
     width: 7em;
     z-index: 1000;
     background-color: seashell;
-    font-size: 1.5em;
+    font-size: 1.3em;
     text-align: center;
   }
   .more .logout {
     padding: 0.3em 0;
+    border-bottom: 1px solid #ebeef5;
   }
   .logout:hover {
     background-color: whitesmoke;
     cursor: pointer;
+  }
+  .searchFriend {
+    display: block;
+    margin-bottom: 0.5em;
   }
   .avatar {
     width: 4em;
@@ -311,14 +391,16 @@
   }
   .msgOverview {
     display: inline-block;
+    vertical-align: middle;
     max-width: 20em;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .friendAvatar {
-    width: 4em;
-    height: 4em;
+  .friend .friendAvatar {
+    margin-top: 0.5em;
+    width: 3em;
+    height: 3em;
     border-radius: 8px;
     margin-right: 1em;
   }
@@ -346,8 +428,8 @@
   }
   .chatPad {
     display: inline-block;
-    width: 30em;
-    height: 30em;
+    width: 22em;
+    height: 35em;
     background-color: rgba(255, 255, 255, 0.877);
     border: 1px solid #ebeef5;
     border-radius: 8px;
@@ -389,8 +471,9 @@
     cursor: pointer;
   }
   .chatPad .content {
-    height: 20em;
+    height: 25em;
     overflow: auto;
+    overflow-x: hidden;
   }
   .msgLine {
     margin: 0.3em;
