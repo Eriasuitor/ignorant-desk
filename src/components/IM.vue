@@ -14,9 +14,8 @@
       <el-row>
         <el-popover placement="bottom" trigger="click" class="wcLogin">
           <div class="desc">使用微信扫描二维码以登录您的账户</div>
-          <img src="https://ss0.bdstatic.com/94oJfD_bAAcT8t7mm9GUKT-xh_/timg?image&quality=100&size=b4000_4000&sec=1540983444&di=b7d2f2d1ec628109aab407ad2470f059&src=http://y3.ifengimg.com/news_spider/dci_2013/09/b85234c4801f8b2d7771353867a7a0f8.jpg" class="qr"
-          />
-          <span slot="reference" class="iconfont icon-weixin" title="Offline"></span>
+          <img :src="qr" class="qr" />
+          <span slot="reference" class="iconfont icon-weixin" title="Offline" @click="loginWcs"></span>
         </el-popover>
       </el-row>
       <el-row>
@@ -65,6 +64,8 @@
         showLoginPad: false,
         friendList: [],
         ws: null,
+        qr: null,
+        wcUser: {},
         user: {},
         chatPadList: [],
         styles: {
@@ -100,11 +101,13 @@
           return (restaurant.value.toLowerCase().indexOf(queryString.toLowerCase()) === 0);
         };
       },
-      loadAll() {
-        return [{
-          "value": "三全鲜食（北新泾店）",
-          "address": "长宁区新渔路144号"
-        }];
+      loginWcs() {
+        this.landingShip
+          .post(
+            this.landingMat + ":8090/wcs", {
+              Authorization: "bearer " + this.token
+            }
+          )
       },
       handleSelect(item) {
         item.msgRecord = []
@@ -229,9 +232,7 @@
             this.chatPadList = this.friendList.slice(0, 5);
           });
       },
-      handleSocketMsg(content) {
-        let socketContent = JSON.parse(content.data);
-        let data = JSON.parse(socketContent.content);
+      receiveMsg(data) {
         let friend = null;
         if (data.from === this.user.userId)
           friend = this.friendList.find(_ => _.userId === data.to);
@@ -243,8 +244,8 @@
             friend.msgRecord.push(data)
             friend.isFriend = false
             this.friendList.splice(0, 0, friend)
-          });
-          return;
+          })
+          return
         }
         friend.msgRecord.push(data);
         let index = this.friendList.indexOf(friend)
@@ -256,6 +257,50 @@
           if (el)
             el.scrollTop = el.scrollHeight
         })
+      },
+      handleSocketMsg(content) {
+        let socketContent = JSON.parse(content.data);
+        switch (socketContent.type) {
+          case 'msg':
+            this.receiveMsg(JSON.parse(socketContent.content))
+            break
+          case 'wcsMsg':
+            {
+              let wcsData = JSON.parse(socketContent.content);
+              let wcsContent = JSON.parse(wcsData.data)
+              switch (wcsData.type) {
+                case 'qr':
+                  this.qr = wcsContent
+                  break;
+                case 'scaned':
+                  console.log('扫描成功')
+                  break
+                case 'contactList':
+                  console.log(wcsContent)
+                  break
+                case 'msg':
+                  console.log(wcsContent)
+                  // this.receiveMsg({
+                  //   userId: this.wcUser.userName,
+                  //   from: wcsContent.FromUserName,
+                  //   to: wcsContent.ToUserName,
+                  //   type: 'text',
+                  //   content: wcsContent.Content,
+                  //   date: wcsContent.CreateTime,
+                  //   msgId: wcsContent.MsgId
+                  // })
+                  break
+                case 'init':
+                  this.wcUser = wcsContent
+                  break
+                default:
+                  break;
+              }
+            }
+            break
+          default:
+            break
+        }
         // this.$emit("new-message", undefined);
       }
     },
