@@ -32,7 +32,7 @@
         <transition-group name="chat-pad" tag="div">
           <div class="chatPad chat-pad-item" v-for="chatpad in chatPadList" :key="chatpad.userId">
             <div class="header"><img :src="chatpad.avatar" class="friendAvatar" /><span class="nickName">{{chatpad.nickName}}<span class="status">{{chatpad.status}}</span><span class="status">{{chatpad.type}}</span></span><span class="el-icon-close close" @click="closeCp(chatpad)"></span></div>
-            <transition-group name="chat-pad" tag="div" class="content chat-pad-item" :id="'cpc' + chatpad.userId">
+            <transition-group name="chat-pad" tag="div" class="content chat-pad-item" :id="'cpc' + chatpad.nickName">
               <div v-for="msgRecord in chatpad.msgRecord" :key="msgRecord.msgId" :class="[msgRecord.to === user.userId? 'msgIn': 'msgOut', 'msgLine', 'chat-pad-item']">
                 <span class="msg">{{msgRecord.content}}<img :src="msgRecord.to === user.userId? chatpad.avatar: user.avatar" class="msgAvatar"/></span>
               </div>
@@ -66,6 +66,7 @@
         ws: null,
         qr: null,
         wcUser: {},
+        wcFriendList: [],
         user: {},
         chatPadList: [],
         styles: {
@@ -176,12 +177,18 @@
           });
       },
       getuserInfo(userId, callback) {
-        this.landingShip
+        let wcList = this.wcFriendList.find(_ => _.userId === userId)
+        console.log(JSON.stringify(this.wcFriendList))
+        console.log(userId)
+        console.log(wcList)
+        if (wcList) callback(wcList)
+        else
+          this.landingShip
           .get(this.landingMat + ":8090/user/" + userId, {
             Authorization: "bearer " + this.token
           })
           .then(resp => {
-            callback(resp);
+            callback(resp.data);
           });
       },
       sendMsg(chatPad) {
@@ -233,13 +240,14 @@
           });
       },
       receiveMsg(data) {
+        console.log('receive ' + JSON.stringify(data))
         let friend = null;
-        if (data.from === this.user.userId)
+        console.log(JSON.stringify( this.friendList))
+        if (data.from === this.user.userId || data.from === this.wcUser.UserName)
           friend = this.friendList.find(_ => _.userId === data.to);
         else friend = this.friendList.find(_ => _.userId === data.from);
         if (!friend) {
-          this.getuserInfo(data.to, resp => {
-            friend = resp.data;
+          this.getuserInfo(data.to, friend => {
             friend.msgRecord = []
             friend.msgRecord.push(data)
             friend.isFriend = false
@@ -253,7 +261,7 @@
         this.friendList.splice(0, 0, friend)
         this.$forceUpdate()
         this.$nextTick(() => {
-          let el = this.$el.querySelector(`#cpc${friend.userId}`)
+          let el = this.$el.querySelector(`#cpc${friend.nickName}`)
           if (el)
             el.scrollTop = el.scrollHeight
         })
@@ -280,17 +288,46 @@
                   break
                 case 'msg':
                   console.log(wcsContent)
-                  // this.receiveMsg({
-                  //   userId: this.wcUser.userName,
-                  //   from: wcsContent.FromUserName,
-                  //   to: wcsContent.ToUserName,
-                  //   type: 'text',
-                  //   content: wcsContent.Content,
-                  //   date: wcsContent.CreateTime,
-                  //   msgId: wcsContent.MsgId
-                  // })
+                  // RemarkName: contact2.RemarkName,
+                  wcsContent.forEach(_ => {
+                    console.log(11111111)
+                    console.log(_.From.UserName)
+                    console.log(this.wcUser.UserName)
+                    console.log(_.From.UserName === this.wcUser.UserName)
+                    console.log(this.wcFriendList)
+                    console.log(this.wcFriendList.find(wf => wf.userId === _.To.UserName))
+                    console.log(JSON.stringify(this.wcFriendList.find(wf => wf.userId === _.To.UserName)))
+                    console.log(222222222222222222)
+                    console.log(_.From.UserName === this.wcUser.UserName && !this.wcFriendList.find(wf => wf.userId === _.To.UserName))
+                    if (_.From.UserName === this.wcUser.UserName && !this.wcFriendList.find(wf => wf.userId === _.To.UserName))
+                      this.wcFriendList.push({
+                        userId: _.To.UserName,
+                        nickName: _.To.NickName,
+                        gender: _.To.Sex,
+                        avatar: _.To.HeadImgUrl,
+                        avatar_small: _.To.HeadImgUrl
+                      })
+                    else if (_.To.UserName === this.wcUser.UserName && !this.wcFriendList.find(wf => wf.userId === _.From.UserName))
+                      this.wcFriendList.push({
+                        userId: _.From.UserName,
+                        nickName: _.From.NickName,
+                        gender: _.From.Sex,
+                        avatar: _.From.HeadImgUrl,
+                        avatar_small: _.From.HeadImgUrl,
+                      })
+                    this.receiveMsg({
+                      userId: this.wcUser.UserName,
+                      from: _.FromUserName,
+                      to: _.ToUserName,
+                      type: 'text',
+                      content: _.Content,
+                      date: _.CreateTime,
+                      msgId: _.MsgId
+                    })
+                  })
                   break
                 case 'init':
+                  console.log(wcsContent)
                   this.wcUser = wcsContent
                   break
                 default:
