@@ -178,9 +178,12 @@
       },
       getuserInfo(userId, callback) {
         let wcList = this.wcFriendList.find(_ => _.userId === userId)
+        console.log("xxxxxxxxxxxxx")
         console.log(JSON.stringify(this.wcFriendList))
         console.log(userId)
         console.log(wcList)
+        console.log("xxxxxxxxxxxxx")
+
         if (wcList) callback(wcList)
         else
           this.landingShip
@@ -246,6 +249,7 @@
         if (data.from === this.user.userId || data.from === this.wcUser.UserName)
           friend = this.friendList.find(_ => _.userId === data.to);
         else friend = this.friendList.find(_ => _.userId === data.from);
+        console.log(friend)
         if (!friend) {
           this.getuserInfo(data.to, friend => {
             friend.msgRecord = []
@@ -255,6 +259,7 @@
           })
           return
         }
+        console.log("xxxx")
         friend.msgRecord.push(data);
         let index = this.friendList.indexOf(friend)
         this.friendList.splice(index, 1)
