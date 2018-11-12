@@ -201,11 +201,11 @@ export default {
       this.ws.send(
         JSON.stringify({
           type: "msg",
-          content: JSON.stringify({
+          content: {
             to: chatPad.userId,
             type: 1,
             content: chatPad.input
-          })
+          }
         })
       );
       chatPad.input = null;
@@ -247,7 +247,7 @@ export default {
         });
     },
     receiveMsg(data) {
-      console.log("receive " + JSON.stringify(data));
+      console.log("receive " + data);
       let friend = null;
       console.log(JSON.stringify(this.friendList));
       if (data.from === this.user.userId || data.from === this.wcUser.UserName)
@@ -276,17 +276,18 @@ export default {
     },
     handleSocketMsg(content) {
       let socketContent = JSON.parse(content.data);
+      console.log(socketContent);
       switch (socketContent.type) {
         case "msg":
-          this.receiveMsg(JSON.parse(socketContent.content));
+          this.receiveMsg(socketContent.content);
           break;
-        case "wcsMsg":
+        case "WcsNotification":
           {
-            let wcsData = JSON.parse(socketContent.content);
-            let wcsContent = JSON.parse(wcsData.data);
+            let wcsData = socketContent.content;
+            console.log(wcsData)
             switch (wcsData.type) {
               case "qr":
-                this.qr = wcsContent;
+                this.qr =wcsData.content;
                 break;
               case "scaned":
                 console.log("扫描成功");
