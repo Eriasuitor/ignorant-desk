@@ -15,6 +15,7 @@
     "iview": "^3.1.1",
     "net": "^1.0.2",
     "qs": "^6.5.2",
+    "uuid": "^3.3.2",
     "vue": "^2.5.17",
     "vue-fullcalendar": "^1.0.9",
     "vue-quill-editor": "^3.0.6",

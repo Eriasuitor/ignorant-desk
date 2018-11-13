@@ -13,16 +13,16 @@
       </div>
       <el-row>
         <el-popover placement="bottom" trigger="click" class="wcLogin">
-          <div class="desc">使用微信扫描二维码以登录您的账户</div>
-          <img :src="qr" class="qr" />
+          <div class="desc" v-if="!wcUser">使用微信扫描二维码以登录您的账户</div>
+          <img :src="qr" class="qr" v-if="!wcUser" />{{wcUser}}
           <span slot="reference" class="iconfont icon-weixin" title="Offline" @click="loginWcs"></span>
         </el-popover>
       </el-row>
       <el-row>
         <el-autocomplete class="searchFriend" size="mini" prefix-icon="el-icon-search" :fetch-suggestions="querySearch" placeholder="请输入内容" :trigger-on-focus="false" @select="handleSelect"></el-autocomplete>
       </el-row>
-      <transition-group name="chat-pad" tag="div">
-        <div class="friend select chat-pad-item" v-for="friend in friendList" :key="friend.userId" @click="friendClick(friend)">
+      <transition-group name="chat-pad" tag="div" class="friendPad">
+        <div class="friend select chat-pad-item" v-for="friend in friendList" :key="friend.nickName" @click="friendClick(friend)">
           <img :src="friend.avatar" class="friendAvatar" />
           <span class="nickname">{{friend.nickName}}<span class="status">{{friend.status}}</span><span class="status">{{friend.type}}</span></span>
           <div class="msgOverview">{{friend.msgRecord.length != 0? friend.msgRecord[friend.msgRecord.length - 1].content: null}}<span></span></div>
@@ -30,11 +30,11 @@
       </transition-group>
       <div class="chatPadArea">
         <transition-group name="chat-pad" tag="div">
-          <div class="chatPad chat-pad-item" v-for="chatpad in chatPadList" :key="chatpad.userId">
+          <div class="chatPad chat-pad-item" v-for="chatpad in chatPadList" :key="chatpad.nickName">
             <div class="header"><img :src="chatpad.avatar" class="friendAvatar" /><span class="nickName">{{chatpad.nickName}}<span class="status">{{chatpad.status}}</span><span class="status">{{chatpad.type}}</span></span><span class="el-icon-close close" @click="closeCp(chatpad)"></span></div>
             <transition-group name="chat-pad" tag="div" class="content chat-pad-item" :id="'cpc' + chatpad.nickName">
               <div v-for="msgRecord in chatpad.msgRecord" :key="msgRecord.msgId" :class="[msgRecord.to === user.userId? 'msgIn': 'msgOut', 'msgLine', 'chat-pad-item']">
-                <span class="msg">{{msgRecord.content}}<img :src="msgRecord.to === user.userId? chatpad.avatar: user.avatar" class="msgAvatar" /></span>
+                <span class="msg">{{msgRecord.content}}<img :src="msgRecord.to === user.userId? chatpad.avatar: user.avatar" class="msgAvatar" /><span v-if="msgRecord.sending">发送中...</span></span>
               </div>
             </transition-group>
             <div class="inputPad">
@@ -65,7 +65,7 @@ export default {
       friendList: [],
       ws: null,
       qr: null,
-      wcUser: {},
+      wcUser: null,
       wcFriendList: [],
       user: {},
       chatPadList: [],
@@ -180,12 +180,6 @@ export default {
     },
     getuserInfo(userId, callback) {
       let wcList = this.wcFriendList.find(_ => _.userId === userId);
-      console.log("xxxxxxxxxxxxx");
-      console.log(JSON.stringify(this.wcFriendList));
-      console.log(userId);
-      console.log(wcList);
-      console.log("xxxxxxxxxxxxx");
-
       if (wcList) callback(wcList);
       else
         this.landingShip
@@ -198,21 +192,38 @@ export default {
     },
     sendMsg(chatPad) {
       if (!chatPad.input) return;
-      this.ws.send(
-        JSON.stringify({
-          type: "msg",
-          content: {
-            to: chatPad.userId,
-            type: 1,
-            content: chatPad.input
-          }
-        })
-      );
+      let msg = {
+        syncId: [require("uuid/v1")()],
+        type: "msg",
+        content: {
+          to: chatPad.userId,
+          type: 1,
+          content: chatPad.input
+        }
+      };
+      this.ws.send(JSON.stringify(msg));
+      chatPad.msgRecord.push({
+        msgId: msg.syncId[0],
+        to: msg.content.to,
+        content: msg.content.content,
+        sending: true
+      });
+      console.log(msg.syncId[0])
       chatPad.input = null;
     },
     friendClick(friend) {
+      console.log(friend);
+      console.log(this.chatPadList.length);
       let index = this.chatPadList.indexOf(friend);
-      if (index === -1) this.chatPadList.push(friend);
+      console.log(index);
+      if (index === -1) {
+        this.chatPadList.push(friend);
+        // this.$forceUpdate();
+        this.$nextTick(() => {
+          let el = this.$el.querySelector(`#cpc${friend.nickName}`);
+          if (el) el.scrollTop = el.scrollHeight;
+        });
+      }
     },
     getMsgRecord(friend) {
       this.landingShip
@@ -223,9 +234,11 @@ export default {
           if (resp.status === 200) {
             friend.msgRecord = resp.data.concat(friend.msgRecord);
             this.$forceUpdate();
+            // this.$nextTick(() => {
             this.$el
               .querySelectorAll(".chatPad .content")
               .forEach(_ => (_.scrollTop = _.scrollHeight));
+            // });
           } else {
             this.$emit("new-message", "error", resp);
           }
@@ -239,120 +252,73 @@ export default {
         .then(resp => {
           this.friendList = resp.data;
           this.friendList.forEach(_ => {
-            _.msgRecord = [];
             _.isFriend = true;
           });
-          this.friendList.forEach(_ => this.getMsgRecord(_));
-          this.chatPadList = this.friendList.slice(0, 5);
         });
     },
     receiveMsg(data) {
-      console.log("receive " + data);
       let friend = null;
-      console.log(JSON.stringify(this.friendList));
-      if (data.from === this.user.userId || data.from === this.wcUser.UserName)
+      if (data.from === this.user.userId)
         friend = this.friendList.find(_ => _.userId === data.to);
       else friend = this.friendList.find(_ => _.userId === data.from);
-      console.log(friend);
       if (!friend) {
-        this.getuserInfo(data.to, friend => {
-          friend.msgRecord = [];
+        return this.getuserInfo(data.to, friend => {
           friend.msgRecord.push(data);
           friend.isFriend = false;
           this.friendList.splice(0, 0, friend);
         });
-        return;
       }
-      console.log("xxxx");
       friend.msgRecord.push(data);
       let index = this.friendList.indexOf(friend);
       this.friendList.splice(index, 1);
       this.friendList.splice(0, 0, friend);
-      this.$forceUpdate();
+      // this.$forceUpdate();
       this.$nextTick(() => {
         let el = this.$el.querySelector(`#cpc${friend.nickName}`);
         if (el) el.scrollTop = el.scrollHeight;
       });
     },
+    handleSync({ syncIdList }) {
+      console.log(111)
+      for (let i = 0; i < this.chatPadList.length; i++) {
+        for (let j = 0; j < this.chatPadList[i].msgRecord.length; j++) {
+          if (this.chatPadList[i].msgRecord[j].msgId == syncIdList[0]) {
+            console.log("found")
+            this.chatPadList[i].msgRecord[j].sending = false;
+            return;
+          }
+        }
+      }
+    },
     handleSocketMsg(content) {
       let socketContent = JSON.parse(content.data);
+      console.log("收到：");
       console.log(socketContent);
       switch (socketContent.type) {
+        case "sync":
+          this.handleSync(socketContent);
+          break;
         case "msg":
           this.receiveMsg(socketContent.content);
           break;
-        case "WcsNotification":
+        case "wcsNotification":
           {
             let wcsData = socketContent.content;
-            console.log(wcsData)
+            console.log(wcsData);
             switch (wcsData.type) {
               case "qr":
-                this.qr =wcsData.content;
+                this.qr = wcsData.content;
                 break;
-              case "scaned":
+              case "scanned":
                 console.log("扫描成功");
                 break;
               case "contactList":
-                console.log(wcsContent);
-                break;
-              case "msg":
-                console.log(wcsContent);
-                // RemarkName: contact2.RemarkName,
-                wcsContent.forEach(_ => {
-                  console.log(11111111);
-                  console.log(_.From.UserName);
-                  console.log(this.wcUser.UserName);
-                  console.log(_.From.UserName === this.wcUser.UserName);
-                  console.log(this.wcFriendList);
-                  console.log(
-                    this.wcFriendList.find(wf => wf.userId === _.To.UserName)
-                  );
-                  console.log(
-                    JSON.stringify(
-                      this.wcFriendList.find(wf => wf.userId === _.To.UserName)
-                    )
-                  );
-                  console.log(222222222222222222);
-                  console.log(
-                    _.From.UserName === this.wcUser.UserName &&
-                      !this.wcFriendList.find(wf => wf.userId === _.To.UserName)
-                  );
-                  if (
-                    _.From.UserName === this.wcUser.UserName &&
-                    !this.wcFriendList.find(wf => wf.userId === _.To.UserName)
-                  )
-                    this.wcFriendList.push({
-                      userId: _.To.UserName,
-                      nickName: _.To.NickName,
-                      gender: _.To.Sex,
-                      avatar: _.To.HeadImgUrl,
-                      avatar_small: _.To.HeadImgUrl
-                    });
-                  else if (
-                    _.To.UserName === this.wcUser.UserName &&
-                    !this.wcFriendList.find(wf => wf.userId === _.From.UserName)
-                  )
-                    this.wcFriendList.push({
-                      userId: _.From.UserName,
-                      nickName: _.From.NickName,
-                      gender: _.From.Sex,
-                      avatar: _.From.HeadImgUrl,
-                      avatar_small: _.From.HeadImgUrl
-                    });
-                  this.receiveMsg({
-                    userId: this.wcUser.UserName,
-                    from: _.FromUserName,
-                    to: _.ToUserName,
-                    type: "text",
-                    content: _.Content,
-                    date: _.CreateTime,
-                    msgId: _.MsgId
-                  });
-                });
+                console.log(wcsData.content);
                 break;
               case "init":
-                console.log(wcsContent);
-                this.wcUser = wcsContent;
+                console.log(wcsData.content);
+                this.wcUser = wcsData.content;
+                this.getFriendList();
                 break;
               default:
                 break;
@@ -503,6 +469,12 @@ export default {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.friendPad {
+  position: relative;
+  display: block;
+  height: calc(100% - 10em);
+  overflow: auto;
+}
 .friend .friendAvatar {
   margin-top: 0.5em;
   width: 3em;
@@ -511,7 +483,7 @@ export default {
   margin-right: 1em;
 }
 .friend {
-  padding: 0.5em;
+  padding: 0.3em;
   position: relative;
   border-bottom: 1px solid #ebeef5;
   vertical-align: middle;
