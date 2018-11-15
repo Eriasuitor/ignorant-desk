@@ -22,7 +22,7 @@ const router = new VueRouter({
 })
 
 Vue.prototype.landingShip = landingShip
-Vue.prototype.landingMat = 'http://localhost'
+Vue.prototype.landingMat = 'http://localhost:8090'
 
 Vue.config.productionTip = false
 Vue.use(ElementUI)

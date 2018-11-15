@@ -81,33 +81,21 @@ export default {
     querySearch(queryString, cb) {
       let result;
       this.landingShip
-        .get(this.landingMat + ":8090/user?q=" + queryString, {
+        .get(this.landingMat + "/user?q=" + queryString, {
           Authorization: "bearer " + this.token
         })
         .then(resp => {
           if (resp.status === 200) {
             result = resp.data;
             result.forEach(_ => {
-              _.value = _.userId;
+              _.value = `${_.nickName} +${_.userId}`;
             });
-            result = queryString
-              ? result.filter(this.createFilter(queryString))
-              : result;
-            // 调用 callback 返回建议列表的数据
             cb(result);
           } else this.$emit("new-message", "error", resp);
         });
     },
-    createFilter(queryString) {
-      return restaurant => {
-        return (
-          restaurant.value.toLowerCase().indexOf(queryString.toLowerCase()) ===
-          0
-        );
-      };
-    },
     loginWcs() {
-      this.landingShip.post(this.landingMat + ":8090/wcs", {
+      this.landingShip.post(this.landingMat + "/wcs", {
         Authorization: "bearer " + this.token
       });
     },
@@ -120,7 +108,7 @@ export default {
     login(userId, password) {
       this.landingShip
         .post(
-          this.landingMat + ":8090/authentication",
+          this.landingMat + "/authentication",
           {
             Authorization: "Basic aWduby1jaGF0Onh4eHgteHh4eA==",
             "Content-Type": "application/x-www-form-urlencoded"
@@ -137,7 +125,11 @@ export default {
             this.getFriendList();
             this.showLoginPad = false;
           } else {
-            this.$emit("new-message", "error", res);
+          }
+        })
+        .catch(err => {
+          this.$emit("new-message", "error", err.response.data.msg);
+          if (err.response.status === 401) {
           }
         });
     },
@@ -170,7 +162,7 @@ export default {
     },
     getMe() {
       this.landingShip
-        .get(this.landingMat + ":8090/user/me", {
+        .get(this.landingMat + "/me", {
           Authorization: "bearer " + this.token
         })
         .then(resp => {
@@ -183,7 +175,7 @@ export default {
       if (wcList) callback(wcList);
       else
         this.landingShip
-          .get(this.landingMat + ":8090/user/" + userId, {
+          .get(this.landingMat + "/user/" + userId, {
             Authorization: "bearer " + this.token
           })
           .then(resp => {
@@ -208,7 +200,7 @@ export default {
         content: msg.content.content,
         sending: true
       });
-      console.log(msg.syncId[0])
+      console.log(msg.syncId[0]);
       chatPad.input = null;
     },
     friendClick(friend) {
@@ -227,7 +219,7 @@ export default {
     },
     getMsgRecord(friend) {
       this.landingShip
-        .get(`${this.landingMat}:8090/user/friend/${friend.userId}/message`, {
+        .get(`${this.landingMat}/user/friend/${friend.userId}/message`, {
           Authorization: "bearer " + this.token
         })
         .then(resp => {
@@ -246,7 +238,7 @@ export default {
     },
     getFriendList() {
       this.landingShip
-        .get(this.landingMat + ":8090/user/friend", {
+        .get(this.landingMat + "/user/friend", {
           Authorization: "bearer " + this.token
         })
         .then(resp => {
@@ -279,11 +271,11 @@ export default {
       });
     },
     handleSync({ syncIdList }) {
-      console.log(111)
+      console.log(111);
       for (let i = 0; i < this.chatPadList.length; i++) {
         for (let j = 0; j < this.chatPadList[i].msgRecord.length; j++) {
           if (this.chatPadList[i].msgRecord[j].msgId == syncIdList[0]) {
-            console.log("found")
+            console.log("found");
             this.chatPadList[i].msgRecord[j].sending = false;
             return;
           }
@@ -332,7 +324,7 @@ export default {
     }
   },
   mounted() {
-    this.login("Lory.Y.Jiang", "123");
+    this.login("Lory.Y.Jiang", "lj60");
   },
   computed: {},
   created() {}
