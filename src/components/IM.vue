@@ -5,7 +5,7 @@
         <LP v-on:login="login" />
       </div>
       <img :src="user.avatar" class="avatar select" />
-      <span class="nickname">{{user.nickName}}<span class="status">{{user.status}}</span></span>
+      <span class="nickname"><span v-html="user.nickName"></span><span class="status">{{user.status}}</span></span>
       <span class="signature">{{user.signature}}</span>
       <div class="el-notification__closeBtn el-icon-arrow-left"><span class="el-icon-more" @click="more($event)"></span> </div>
       <div class="more" v-if="showMore">
@@ -21,20 +21,22 @@
       <el-row>
         <el-autocomplete class="searchFriend" size="mini" prefix-icon="el-icon-search" :fetch-suggestions="querySearch" placeholder="请输入内容" :trigger-on-focus="false" @select="handleSelect"></el-autocomplete>
       </el-row>
-      <transition-group name="chat-pad" tag="div" class="friendPad">
+      <transition-group name="chat-pad" tag="div" class="friendPad noScroll">
         <div class="friend select chat-pad-item" v-for="friend in friendList" :key="friend.nickName" @click="friendClick(friend)">
           <img :src="friend.avatar" class="friendAvatar" />
-          <span class="nickname">{{friend.nickName}}<span class="status">{{friend.status}}</span><span class="status">{{friend.type}}</span></span>
+          <span class="nickname"><span v-html="friend.nickName"></span><span class="status">{{friend.status}}</span><span class="status">{{friend.type}}</span></span>
           <div class="msgOverview">{{friend.msgRecord.length != 0? friend.msgRecord[friend.msgRecord.length - 1].content: null}}<span></span></div>
         </div>
       </transition-group>
       <div class="chatPadArea">
         <transition-group name="chat-pad" tag="div">
           <div class="chatPad chat-pad-item" v-for="chatpad in chatPadList" :key="chatpad.nickName">
-            <div class="header"><img :src="chatpad.avatar" class="friendAvatar" /><span class="nickName">{{chatpad.nickName}}<span class="status">{{chatpad.status}}</span><span class="status">{{chatpad.type}}</span></span><span class="el-icon-close close" @click="closeCp(chatpad)"></span></div>
-            <transition-group name="chat-pad" tag="div" class="content chat-pad-item" :id="'cpc' + chatpad.nickName">
+            <div class="header"><img :src="chatpad.avatar" class="friendAvatar" /><span class="nickName"><span v-html="chatpad.nickName"></span><span class="status">{{chatpad.status}}</span><span class="status">{{chatpad.type}}</span></span><span class="el-icon-close close" @click="closeCp(chatpad)"></span></div>
+            <transition-group name="chat-pad" tag="div" class="noScroll content chat-pad-item" :id="'cpc' + chatpad.nickName">
               <div v-for="msgRecord in chatpad.msgRecord" :key="msgRecord.msgId" :class="[msgRecord.to === user.userId? 'msgIn': 'msgOut', 'msgLine', 'chat-pad-item']">
-                <span class="msg">{{msgRecord.content}}<img :src="msgRecord.to === user.userId? chatpad.avatar: user.avatar" class="msgAvatar" /><span v-if="msgRecord.sending">发送中...</span></span>
+                <span v-if="msgRecord.sending">发送中...</span>
+                <span class="msg" v-html="formatHtml(msgRecord.content)"></span>
+                <img :src="msgRecord.to === user.userId? chatpad.avatar: user.avatar" class="msgAvatar" />
               </div>
             </transition-group>
             <div class="inputPad">
@@ -78,6 +80,11 @@ export default {
     };
   },
   methods: {
+    formatHtml(source) {
+      source = source.replace(/\&lt;/g, "<");
+      source = source.replace(/\&gt;/g, ">");
+      return source;
+    },
     querySearch(queryString, cb) {
       let result;
       this.landingShip
@@ -124,6 +131,7 @@ export default {
             this.getMe();
             this.getFriendList();
             this.showLoginPad = false;
+            this.loginWcs();
           } else {
           }
         })
@@ -137,8 +145,8 @@ export default {
       this.showMore = false;
       this.showLoginPad = true;
       this.user = {};
-      this.friendList = null;
-      this.chatPadList = null;
+      this.friendList = [];
+      this.chatPadList = [];
     },
     more(event) {
       event.stopPropagation();
@@ -150,13 +158,14 @@ export default {
     },
     initSocket() {
       this.ws = new WebSocket(
-        "ws://localhost:8090/ws?access_token=" + this.token
+        "ws://120.78.93.110:8090/ws?access_token=" + this.token
       );
       this.ws.onopen = () => {
         this.$emit("new-message", "success", "IC连接成功");
       };
       this.ws.onmessage = this.handleSocketMsg;
-      this.ws.onclose = () => {
+      this.ws.onclose = e => {
+        console.log(e);
         this.$emit("new-message", "warning", "IC失联");
       };
     },
@@ -200,14 +209,15 @@ export default {
         content: msg.content.content,
         sending: true
       });
-      console.log(msg.syncId[0]);
       chatPad.input = null;
+      this.$nextTick(() => {
+        let el = this.$el.querySelector(`#cpc${chatPad.nickName}`);
+        if (el) el.scrollTop = el.scrollHeight;
+      });
     },
     friendClick(friend) {
-      console.log(friend);
-      console.log(this.chatPadList.length);
       let index = this.chatPadList.indexOf(friend);
-      console.log(index);
+
       if (index === -1) {
         this.chatPadList.push(friend);
         // this.$forceUpdate();
@@ -264,18 +274,15 @@ export default {
       let index = this.friendList.indexOf(friend);
       this.friendList.splice(index, 1);
       this.friendList.splice(0, 0, friend);
-      // this.$forceUpdate();
       this.$nextTick(() => {
         let el = this.$el.querySelector(`#cpc${friend.nickName}`);
         if (el) el.scrollTop = el.scrollHeight;
       });
     },
     handleSync({ syncIdList }) {
-      console.log(111);
       for (let i = 0; i < this.chatPadList.length; i++) {
         for (let j = 0; j < this.chatPadList[i].msgRecord.length; j++) {
           if (this.chatPadList[i].msgRecord[j].msgId == syncIdList[0]) {
-            console.log("found");
             this.chatPadList[i].msgRecord[j].sending = false;
             return;
           }
@@ -284,8 +291,6 @@ export default {
     },
     handleSocketMsg(content) {
       let socketContent = JSON.parse(content.data);
-      console.log("收到：");
-      console.log(socketContent);
       switch (socketContent.type) {
         case "sync":
           this.handleSync(socketContent);
@@ -296,19 +301,16 @@ export default {
         case "wcsNotification":
           {
             let wcsData = socketContent.content;
-            console.log(wcsData);
+
             switch (wcsData.type) {
               case "qr":
                 this.qr = wcsData.content;
                 break;
               case "scanned":
-                console.log("扫描成功");
                 break;
               case "contactList":
-                console.log(wcsData.content);
                 break;
               case "init":
-                console.log(wcsData.content);
                 this.wcUser = wcsData.content;
                 this.getFriendList();
                 break;
@@ -498,7 +500,7 @@ export default {
 }
 .chatPad {
   display: inline-block;
-  width: 22em;
+  width: 24em;
   height: 35em;
   background-color: rgba(255, 255, 255, 0.877);
   border: 1px solid #ebeef5;
@@ -545,32 +547,39 @@ export default {
   overflow: auto;
   overflow-x: hidden;
 }
+.noScroll::-webkit-scrollbar {
+  width: 0 !important;
+}
+.noScroll {
+  -ms-overflow-style: none;
+  overflow: -moz-scrollbars-none;
+}
 .msgLine {
-  margin: 0.3em;
+  position: relative;
 }
 .msgOut {
   text-align: right;
 }
 .msgIn .msgAvatar {
-  left: -2.5em;
+  left: 0.5em;
 }
 .msgAvatar {
   position: absolute;
-  top: 0;
   width: 2.3em;
   height: 2.3em;
+  top: 0.3em;
   border-radius: 8px;
 }
 .msgOut .msgAvatar {
-  right: -2.5em;
+  right: 0.5em;
 }
 .msgLine .msg {
-  position: relative;
   display: inline-block;
+  word-break: break-all;
   padding: 0.4em;
-  margin: 0 2.5em;
+  margin: 0.3em 3.2em;
   background-color: rgba(0, 128, 0, 0.397);
-  border-radius: 8px;
+  border-radius: 3px;
   text-align: left;
 }
 .chatPad .inputPad {

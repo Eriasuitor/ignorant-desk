@@ -11,7 +11,6 @@
     "axios": "^0.18.0",
     "dns": "^0.2.2",
     "element-ui": "^2.4.7",
-    "fetch": "^1.1.0",
     "iview": "^3.1.1",
     "net": "^1.0.2",
     "qs": "^6.5.2",
@@ -21,6 +20,7 @@
     "vue-quill-editor": "^3.0.6",
     "vue-router": "^3.0.1",
     "vue-websocket": "^0.2.3",
+    "vuescroll": "^4.9.0-beta.11",
     "ws": "^6.1.0"
   },
   "devDependencies": {
