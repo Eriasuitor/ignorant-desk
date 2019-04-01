@@ -44,6 +44,7 @@
           <el-form-item>
     <el-button type="primary" @click="send()">发送</el-button>
     <el-button  @click="preview()">预览</el-button>
+    <el-button type="primary" @click="generattReceiver()">生成收件人</el-button>
   </el-form-item>
         </el-form>
      <quill-editor 
@@ -61,17 +62,16 @@ export default {
   data() {
     return {
       dataArray: [],
-      subject: '${desc}的专属邮件',
-      sender: 'Lory Jiang<948471414@qq.com>',
-      receiver: '${id}',
+      subject: '',
+      sender: '',
+      receiver: '',
       cc: '',
       bcc: '',
-      content: '${id}${desc}',
-      t: '123123123123123',
+      content: '',
       editorOption: {},
       user: {
-        username: '948471414',
-        password: 'wyrxdbhgqrcjbdah'
+        username: '',
+        password: ''
       },
       showLoginPad: true
     };
@@ -101,6 +101,16 @@ export default {
       });
       console.log()
     },
+    generattReceiver(){
+      if(this.dataArray.length === 0) {
+        return this.$notify({
+        title: "为发现发送字段替换名单，请上传后重试",
+        position: "top-right",
+        duration: 3000
+      });
+      }
+      this.$emit('stick_change', this.dataArray.map(preData => this.formatMail(preData, this.receiver)).join(';'))
+    },
     async send(){
       if(this.dataArray.length === 0) {
         return this.$notify({
@@ -112,7 +122,7 @@ export default {
       let success = 0, total = this.dataArray.length, failed = 0
       for(let i = 0; i< this.dataArray.length; i++){
         let preData = this.dataArray[i]
-        let result = await this.landingShip.post('http://localhost:11081/mail', undefined, {
+        let result = await this.landingShip.post('http://120.78.93.110:11081/mail', undefined, {
           user : this.user.username,
            pass : this.user.password,
            subject: this.formatMail(preData, this.subject),
@@ -161,7 +171,7 @@ export default {
 let data = s.result.split('\n').map(_ => _.replace(/\r/g, '').split(','))
 let fieldName = data.shift()
  this.dataArray = data.map(_ => fieldName.reduce((a, b, index) => Object.assign(a, {[b]:_[index]}), {}))
-      if(!this.dataArray  || this.dataArray .length <= 2){
+      if(!this.dataArray  || this.dataArray.length === 0){
         return this.$notify({
         title: "文字替换名单格式错误，请交由Lory检查后重试",
         position: "top-right",
@@ -172,11 +182,10 @@ let fieldName = data.shift()
 　　　　　　}
       },
     async loginQQ(){
-      let loginResult = await this.landingShip.post('http://localhost:11081/login', undefined, {user: this.user.username,pass: this.user.password})
+      let loginResult = await this.landingShip.post('http://120.78.93.110:11081/login', undefined, {user: this.user.username,pass: this.user.password})
       if(loginResult.status === 200) {
         this.showLoginPad = false
-       const h = this.$createElement;
-
+      this.sender = `Vfluencer<${this.user.username}@qq.com>`
       this.$notify({
         title: "登录成功  ",
         dangerouslyUseHTMLString: true,

@@ -13,15 +13,14 @@
         <el-button size="small" type="primary" icon="el-icon-delete"></el-button>
       </el-button-group>
     </div>
-    <IM :show="showIm" v-on:new-message="newMessage" />
     <transition name="editor">
-      <window v-show="show">
-        <Editor/>
+      <window v-show="show" >
+        <Editor v-on:stick_change="changeStick" />
       </window>
     </transition>
     <div class="window" v-drag>
       <div class="curved_box">
-        <textarea class="stickText" />
+        <textarea class="stickText" v-model="stackContent"/>
       </div>
     </div>
     <!-- <div class="window" @mousedown="move">
@@ -48,6 +47,7 @@
     },
     data() {
       return {
+        stackContent: '',
         value1: "1",
         show: true,
         showIm: false
@@ -55,6 +55,9 @@
     },
     mounted() {},
     methods: {
+      changeStick(value){
+        this.stackContent = value
+      },
       newMessage(type, message) {
         this.$message({
           showClose: true,

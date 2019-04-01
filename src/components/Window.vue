@@ -135,12 +135,13 @@ export default {
   background: #fff;
 }
 .window {
+  z-index: 100;
   position: fixed;
   background-color: blue;
-  top: 25%;
-  left: 25%;
-  width: 50%;
-  height: 50%;
+  top: 10%;
+  left: 10%;
+  width: 80%;
+  height: 80%;
   border: 1px solid #ebeef5;
   border-radius: 8px;
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
