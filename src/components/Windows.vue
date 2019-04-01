@@ -50,7 +50,7 @@
       return {
         value1: "1",
         show: true,
-        showIm: true
+        showIm: false
       };
     },
     mounted() {},
@@ -152,14 +152,14 @@
       }
     },
     created() {
-      document.onkeypress = e => {
+      /**document.onkeypress = e => {
         if (e.key === "q") {
           this.show = !this.show;
         }
         if (e.key === "s") {
           this.showIm = !this.showIm;
         }
-      }
+      } */
     }
   };
 </script>

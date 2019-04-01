@@ -1,7 +1,7 @@
 <template>
   <transition name="slide">
     <div class="window" id="window" v-show="show"> 
-      <div class="header" id="header"/>
+      <div class="header" id="header">Union Mail</div>
       <div v-for="border in borderList" :key="border[0]" :class="['resize', border[0]]" :id=" border[0]"/>
       <div class="content"><slot/></div>
     </div>
@@ -149,6 +149,10 @@ export default {
   text-align: left;
 }
 .window .header {
+  padding-top: 0.3em;
+  font-weight: bold;
+  vertical-align: middle;
+  text-align: center;
   height: 2em;
   width: 100%;
   background-color: whitesmoke;
