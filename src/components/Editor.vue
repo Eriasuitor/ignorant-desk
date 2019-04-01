@@ -61,12 +61,12 @@ export default {
   data() {
     return {
       dataArray: [],
-      subject: '',
-      sender: '',
-      receiver: '',
+      subject: '${desc}的专属邮件',
+      sender: 'Lory Jiang<948471414@qq.com>',
+      receiver: '${id}',
       cc: '',
       bcc: '',
-      content: null,
+      content: '${id}${desc}',
       t: '123123123123123',
       editorOption: {},
       user: {
@@ -102,7 +102,7 @@ export default {
       console.log()
     },
     async send(){
-      if(this.dataArray.length <= 2) {
+      if(this.dataArray.length === 0) {
         return this.$notify({
         title: "为发现发送字段替换名单，请上传后重试",
         position: "top-right",
@@ -110,9 +110,9 @@ export default {
       });
       }
       let success = 0, total = this.dataArray.length, failed = 0
-      for(let i = 0; i< this,dataArray.length; i++){
+      for(let i = 0; i< this.dataArray.length; i++){
         let preData = this.dataArray[i]
-        let result = await this.landingShip.post('http://localhost:11081/login', undefined, {
+        let result = await this.landingShip.post('http://localhost:11081/mail', undefined, {
           user : this.user.username,
            pass : this.user.password,
            subject: this.formatMail(preData, this.subject),
@@ -127,7 +127,8 @@ export default {
           this.$notify({
         title: "发送成功",
         position: "top-right",
-        duration: 1000
+        duration: 1000,
+        message: `待发送：${total - success - failed}，成功：${success}，失败：${failed}`
       });
         }
         else{
